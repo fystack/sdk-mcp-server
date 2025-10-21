@@ -1,20 +1,25 @@
-import { FystackSDK, Environment } from '@fystack/sdk';
-import type { Config } from '../configs/index.js';
+import { FystackSDK, Environment, EtherSigner, SolanaSigner, PaymentService, APIService } from '@fystack/sdk';
+import type { Config } from '../configs/index';
 
 export class FystackMpcClient {
   private fystackSdk: FystackSDK;
   private config: Config;
+  public environment: Environment;
+  private etherSigner?: EtherSigner;
+  private solanaSigner?: SolanaSigner;
+  private paymentService?: PaymentService;
+  private apiService?: APIService;
 
   constructor(config: Config) {
     this.config = config;
     
-    const environment = this.mapEnvironment(config.fystackEnvironment);
+    this.environment = this.mapEnvironment(config.fystackEnvironment);
     this.fystackSdk = new FystackSDK({
       credentials: {
         apiKey: config.fystackApiKey,
         apiSecret: config.fystackApiSecret,
       },
-      environment,
+      environment: this.environment,
       logger: config.logLevel === 'debug',
     });
   }
@@ -29,6 +34,56 @@ export class FystackMpcClient {
 
   getSdk(): FystackSDK {
     return this.fystackSdk;
+  }
+
+  getEtherSigner(provider?: any): EtherSigner {
+    if (!this.etherSigner) {
+      this.etherSigner = new EtherSigner(
+        {
+          apiKey: this.config.fystackApiKey,
+          apiSecret: this.config.fystackApiSecret,
+        },
+        this.environment,
+        provider
+      );
+    }
+    return this.etherSigner;
+  }
+
+  getSolanaSigner(): SolanaSigner {
+    if (!this.solanaSigner) {
+      this.solanaSigner = new SolanaSigner(
+        {
+          apiKey: this.config.fystackApiKey,
+          apiSecret: this.config.fystackApiSecret,
+        },
+        this.environment
+      );
+    }
+    return this.solanaSigner;
+  }
+
+  getPaymentService(): PaymentService {
+    if (!this.paymentService) {
+      this.paymentService = new PaymentService({
+        apiKey: this.config.fystackApiKey,
+        environment: this.environment,
+      });
+    }
+    return this.paymentService;
+  }
+
+  getApiService(): APIService {
+    if (!this.apiService) {
+      this.apiService = new APIService(
+        {
+          apiKey: this.config.fystackApiKey,
+          apiSecret: this.config.fystackApiSecret,
+        },
+        this.environment
+      );
+    }
+    return this.apiService;
   }
 
   getConfig(): Config {

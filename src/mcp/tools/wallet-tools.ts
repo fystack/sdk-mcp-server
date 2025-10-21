@@ -1,15 +1,6 @@
-import type { FystackMpcClient } from '../fystack/client.js';
-import { FystackSDK, Environment, WalletType, WalletPurpose, AddressType, DestinationType } from '@fystack/sdk';
-
-export interface ToolDefinition {
-  name: string;
-  description: string;
-  inputSchema: {
-    type: string;
-    properties: Record<string, unknown>;
-    required: string[];
-  };
-}
+import type { FystackMpcClient } from '../../fystack/client';
+import { FystackSDK, WalletType, WalletPurpose, AddressType } from '@fystack/sdk';
+import type { ToolDefinition, ToolExecutor } from '../types';
 
 export const naturalLanguageWalletTool: ToolDefinition = {
   name: 'wallet_operations',
@@ -30,7 +21,7 @@ export const naturalLanguageWalletTool: ToolDefinition = {
   },
 };
 
-export const toolDefinitions: ToolDefinition[] = [
+export const walletToolDefinitions: ToolDefinition[] = [
   naturalLanguageWalletTool,
   {
     name: 'create_mpc_wallet',
@@ -63,6 +54,20 @@ export const toolDefinitions: ToolDefinition[] = [
         },
       },
       required: ['name'],
+    },
+  },
+  {
+    name: 'get_wallet_creation_status',
+    description: 'Get the current status of a wallet creation process.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        wallet_id: {
+          type: 'string',
+          description: 'The wallet ID',
+        },
+      },
+      required: ['wallet_id'],
     },
   },
   {
@@ -118,7 +123,7 @@ export const toolDefinitions: ToolDefinition[] = [
   },
 ];
 
-export async function executeCreateMpcWallet(client: FystackMpcClient, args: Record<string, unknown>): Promise<string> {
+export const executeCreateMpcWallet: ToolExecutor = async (client: FystackMpcClient, args: Record<string, unknown>): Promise<string> => {
   const sdk = client.getSdk();
   const name = (args.name as string) || `MPC-Wallet-${Date.now()}`;
   
@@ -135,9 +140,9 @@ export async function executeCreateMpcWallet(client: FystackMpcClient, args: Rec
     wallet_type: 'MPC',
     message: `Successfully created MPC wallet: ${response.wallet_id}`,
   });
-}
+};
 
-export async function executeCreateStandardWallet(client: FystackMpcClient, args: Record<string, unknown>): Promise<string> {
+export const executeCreateStandardWallet: ToolExecutor = async (client: FystackMpcClient, args: Record<string, unknown>): Promise<string> => {
   const sdk = client.getSdk();
   const name = args.name as string;
   const walletPurposeStr = (args.wallet_purpose as string)?.toLowerCase() || 'user';
@@ -173,9 +178,9 @@ export async function executeCreateStandardWallet(client: FystackMpcClient, args
     wallet_purpose: walletPurposeStr,
     message: `Successfully created standard wallet: ${response.wallet_id}`,
   });
-}
+};
 
-export async function executeGetWalletAssets(client: FystackMpcClient, args: Record<string, unknown>): Promise<string> {
+export const executeGetWalletAssets: ToolExecutor = async (client: FystackMpcClient, args: Record<string, unknown>): Promise<string> => {
   const walletId = args.wallet_id as string;
   if (!walletId) {
     throw new Error('wallet_id is required');
@@ -199,9 +204,9 @@ export async function executeGetWalletAssets(client: FystackMpcClient, args: Rec
     })),
     count: assets.length,
   });
-}
+};
 
-export async function executeGetDepositAddress(client: FystackMpcClient, args: Record<string, unknown>): Promise<string> {
+export const executeGetDepositAddress: ToolExecutor = async (client: FystackMpcClient, args: Record<string, unknown>): Promise<string> => {
   const walletId = args.wallet_id as string;
   const addressTypeStr = (args.address_type as string)?.toLowerCase();
 
@@ -233,9 +238,9 @@ export async function executeGetDepositAddress(client: FystackMpcClient, args: R
     qr_code: depositInfo.qr_code,
     asset_id: depositInfo.asset_id,
   });
-}
+};
 
-export async function executeRescanTransaction(client: FystackMpcClient, args: Record<string, unknown>): Promise<string> {
+export const executeRescanTransaction: ToolExecutor = async (client: FystackMpcClient, args: Record<string, unknown>): Promise<string> => {
   const txHash = args.tx_hash as string;
   const networkId = args.network_id as string;
 
@@ -256,12 +261,12 @@ export async function executeRescanTransaction(client: FystackMpcClient, args: R
     status: 'initiated',
     message: `Transaction rescan initiated for ${txHash} on network ${networkId}`,
   });
-}
+};
 
-export async function executeNaturalLanguageWalletOperation(
+export const executeNaturalLanguageWalletOperation: ToolExecutor = async (
   client: FystackMpcClient,
   args: Record<string, unknown>,
-): Promise<string> {
+): Promise<string> => {
   const message = args.message as string;
   const walletId = args.wallet_id as string;
 
@@ -349,8 +354,25 @@ export async function executeNaturalLanguageWalletOperation(
       message: error instanceof Error ? error.message : 'Unknown error occurred',
     });
   }
-}
+};
 
+export const executeGetWalletCreationStatus: ToolExecutor = async (client: FystackMpcClient, args: Record<string, unknown>): Promise<string> => {
+  const walletId = args.wallet_id as string;
+  if (!walletId) {
+    throw new Error('wallet_id is required');
+  }
+
+  const sdk = client.getSdk();
+  const status = await sdk.getWalletCreationStatus(walletId);
+
+  return JSON.stringify({
+    wallet_id: status.wallet_id,
+    status: status.status,
+    message: `Wallet creation status: ${status.status}`,
+  });
+};
+
+// Helper functions
 function extractWalletName(message: string): string | undefined {
   const nameMatch = message.match(/name[d]?\s+["']([^"']+)["']/i) || 
                     message.match(/called\s+["']([^"']+)["']/i);

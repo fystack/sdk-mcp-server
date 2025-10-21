@@ -6,16 +6,37 @@ import {
   type Tool,
   type TextContent,
 } from '@modelcontextprotocol/sdk/types.js';
-import type { FystackMpcClient } from '../fystack/client.js';
+import type { FystackMpcClient } from '../fystack/client';
 import {
   toolDefinitions,
   executeCreateMpcWallet,
   executeCreateStandardWallet,
+  executeGetWalletCreationStatus,
   executeGetWalletAssets,
   executeGetDepositAddress,
   executeRescanTransaction,
   executeNaturalLanguageWalletOperation,
-} from './tools.js';
+  executeEthGetAddress,
+  executeEthSignTransaction,
+  executeEthSendTransaction,
+  executeEthSignMessage,
+  executeEthSignTypedData,
+  executeSolanaGetAddress,
+  executeSolanaSignTransaction,
+  executeSolanaSignMessage,
+  executeSolanaSignAndSendTransaction,
+  executeSolanaSignAllTransactions,
+  executeCreatePaymentCheckout,
+  executeGetPaymentCheckout,
+  executeCreateCheckoutPayment,
+  executeGetCheckoutPayment,
+  executeVerifyWebhookEvent,
+  executeApiGetWalletDetail,
+  executeApiRequestSign,
+  executeApiGetSignStatus,
+  executeApiSignTransaction,
+  executeApiGetTransactionStatus,
+} from './tools/tools';
 
 export class FystackMcpServer {
   private server: Server;
@@ -75,6 +96,10 @@ export class FystackMcpServer {
           result = await executeCreateStandardWallet(this.client, args);
           break;
 
+        case 'get_wallet_creation_status':
+          result = await executeGetWalletCreationStatus(this.client, args);
+          break;
+
         case 'get_wallet_assets':
           result = await executeGetWalletAssets(this.client, args);
           break;
@@ -85,6 +110,91 @@ export class FystackMcpServer {
 
         case 'rescan_transaction':
           result = await executeRescanTransaction(this.client, args);
+          break;
+
+        // Ethereum signing tools
+        case 'eth_get_address':
+          result = await executeEthGetAddress(this.client, args);
+          break;
+
+        case 'eth_sign_transaction':
+          result = await executeEthSignTransaction(this.client, args);
+          break;
+
+        case 'eth_send_transaction':
+          result = await executeEthSendTransaction(this.client, args);
+          break;
+
+        case 'eth_sign_message':
+          result = await executeEthSignMessage(this.client, args);
+          break;
+
+        case 'eth_sign_typed_data':
+          result = await executeEthSignTypedData(this.client, args);
+          break;
+
+        // Solana signing tools
+        case 'solana_get_address':
+          result = await executeSolanaGetAddress(this.client, args);
+          break;
+
+        case 'solana_sign_transaction':
+          result = await executeSolanaSignTransaction(this.client, args);
+          break;
+
+        case 'solana_sign_message':
+          result = await executeSolanaSignMessage(this.client, args);
+          break;
+
+        case 'solana_sign_and_send_transaction':
+          result = await executeSolanaSignAndSendTransaction(this.client, args);
+          break;
+
+        case 'solana_sign_all_transactions':
+          result = await executeSolanaSignAllTransactions(this.client, args);
+          break;
+
+        // Payment tools
+        case 'create_payment_checkout':
+          result = await executeCreatePaymentCheckout(this.client, args);
+          break;
+
+        case 'get_payment_checkout':
+          result = await executeGetPaymentCheckout(this.client, args);
+          break;
+
+        case 'create_checkout_payment':
+          result = await executeCreateCheckoutPayment(this.client, args);
+          break;
+
+        case 'get_checkout_payment':
+          result = await executeGetCheckoutPayment(this.client, args);
+          break;
+
+        // Webhook tools
+        case 'verify_webhook_event':
+          result = await executeVerifyWebhookEvent(this.client, args);
+          break;
+
+        // API Service low-level tools
+        case 'api_get_wallet_detail':
+          result = await executeApiGetWalletDetail(this.client, args);
+          break;
+
+        case 'api_request_sign':
+          result = await executeApiRequestSign(this.client, args);
+          break;
+
+        case 'api_get_sign_status':
+          result = await executeApiGetSignStatus(this.client, args);
+          break;
+
+        case 'api_sign_transaction':
+          result = await executeApiSignTransaction(this.client, args);
+          break;
+
+        case 'api_get_transaction_status':
+          result = await executeApiGetTransactionStatus(this.client, args);
           break;
 
         default:
