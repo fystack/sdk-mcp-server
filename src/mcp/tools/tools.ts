@@ -6,6 +6,7 @@ import { walletToolDefinitions, naturalLanguageWalletTool } from './wallet-tools
 import { ethToolDefinitions } from './eth-tools';
 import { solanaToolDefinitions } from './solana-tools';
 import { paymentToolDefinitions } from './payment-tools';
+import { uniswapToolDefinitions } from './uniswap-tools';
 
 // Combine all tool definitions
 export const toolDefinitions = [
@@ -13,6 +14,7 @@ export const toolDefinitions = [
   ...ethToolDefinitions,
   ...solanaToolDefinitions,
   ...paymentToolDefinitions,
+  ...uniswapToolDefinitions,
 ];
 
 // Re-export the natural language wallet tool for backward compatibility
@@ -52,3 +54,8 @@ export {
   executeCreateCheckoutPayment,
   executeGetCheckoutPayment,
 } from './payment-tools';
+
+export {
+  executeUniswapGetPrice,
+  executeUniswapExecuteSwap,
+} from './uniswap-tools';

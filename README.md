@@ -23,9 +23,14 @@ A **Model Context Protocol (MCP) Server** that integrates the [Fystack Platform 
 - **Smart Parsing**: Automatically extracts parameters from natural language
 - **Flexible Commands**: Supports various phrasings and formats
 
+### DeFi Integration
+- **Uniswap Trading**: Get price quotes and execute swaps across multiple chains
+- **Smart Order Routing**: Automatic best path selection using Uniswap's AlphaRouter
+- **Multi-Chain Support**: Trade on Ethereum, Optimism, Polygon, Arbitrum, and Base
+- **Native Token Support**: Seamless ETH/MATIC/etc. trading with automatic wrapping
+
 ### Future Features
 - **Advanced MPC Key Management**: Rotate, recover, or update key shares securely
-- **Cross-Chain Swaps**: Perform atomic swaps between supported blockchains
 - **Gas Optimization**: Automatically optimize gas fees for transactions
 - **Wallet Recovery**: Recover wallets using MPC key shares
 - **Custom Token Support**: Manage custom tokens and NFTs
@@ -208,6 +213,43 @@ Rescan a blockchain transaction.
   "network_id": "ethereum"
 }
 ```
+
+### DeFi Tools
+
+#### `uniswap_get_price`
+Get a price quote for a Uniswap swap with smart order routing.
+
+```json
+{
+  "tool": "uniswap_get_price",
+  "wallet_id": "550e8400-e29b-41d4-a716-446655440000",
+  "chain_id": 1,
+  "token_in": "NATIVE",
+  "token_out": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+  "amount_in": "1.0",
+  "trade_type": "exactIn"
+}
+```
+
+**Supported chains:** 1 (Ethereum), 10 (Optimism), 137 (Polygon), 42161 (Arbitrum), 8453 (Base)
+
+#### `uniswap_execute_swap`
+Execute a token swap on Uniswap using MPC wallet.
+
+```json
+{
+  "tool": "uniswap_execute_swap",
+  "wallet_id": "550e8400-e29b-41d4-a716-446655440000",
+  "chain_id": 1,
+  "token_in": "NATIVE",
+  "token_out": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+  "amount_in": "0.1",
+  "slippage_tolerance": 0.5,
+  "deadline_minutes": 20
+}
+```
+
+See [UNISWAP_INTEGRATION.md](./UNISWAP_INTEGRATION.md) for detailed documentation.
 
 ## Usage Examples
 

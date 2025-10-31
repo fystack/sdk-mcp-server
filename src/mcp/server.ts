@@ -31,6 +31,8 @@ import {
   executeGetPaymentCheckout,
   executeCreateCheckoutPayment,
   executeGetCheckoutPayment,
+  executeUniswapGetPrice,
+  executeUniswapExecuteSwap,
 } from './tools/tools';
 
 export class FystackMcpServer {
@@ -168,6 +170,15 @@ export class FystackMcpServer {
 
         case 'get_checkout_payment':
           result = await executeGetCheckoutPayment(this.client, args);
+          break;
+
+        // Uniswap tools
+        case 'uniswap_get_price':
+          result = await executeUniswapGetPrice(this.client, args);
+          break;
+
+        case 'uniswap_execute_swap':
+          result = await executeUniswapExecuteSwap(this.client, args);
           break;
 
         default:
