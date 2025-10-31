@@ -11,7 +11,7 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@fystack/sdk": "^0.1.3",
+    "@fystack/sdk": "^0.1.4",
     "@modelcontextprotocol/sdk": "^1.20.1",
     "dotenv": "^17.2.3",
     "uuid": "^13.0.0"

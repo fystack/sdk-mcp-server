@@ -6,8 +6,6 @@ import { walletToolDefinitions, naturalLanguageWalletTool } from './wallet-tools
 import { ethToolDefinitions } from './eth-tools';
 import { solanaToolDefinitions } from './solana-tools';
 import { paymentToolDefinitions } from './payment-tools';
-import { webhookToolDefinitions } from './webhook-tools';
-import { apiToolDefinitions } from './api-tools';
 
 // Combine all tool definitions
 export const toolDefinitions = [
@@ -15,8 +13,6 @@ export const toolDefinitions = [
   ...ethToolDefinitions,
   ...solanaToolDefinitions,
   ...paymentToolDefinitions,
-  ...webhookToolDefinitions,
-  ...apiToolDefinitions,
 ];
 
 // Re-export the natural language wallet tool for backward compatibility
@@ -26,6 +22,7 @@ export { naturalLanguageWalletTool };
 export {
   executeCreateMpcWallet,
   executeCreateStandardWallet,
+  executeGetWallets,
   executeGetWalletAssets,
   executeGetDepositAddress,
   executeRescanTransaction,
@@ -55,15 +52,3 @@ export {
   executeCreateCheckoutPayment,
   executeGetCheckoutPayment,
 } from './payment-tools';
-
-export {
-  executeVerifyWebhookEvent,
-} from './webhook-tools';
-
-export {
-  executeApiGetWalletDetail,
-  executeApiRequestSign,
-  executeApiGetSignStatus,
-  executeApiSignTransaction,
-  executeApiGetTransactionStatus,
-} from './api-tools';

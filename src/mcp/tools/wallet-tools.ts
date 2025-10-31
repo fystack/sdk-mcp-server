@@ -33,6 +33,11 @@ export const walletToolDefinitions: ToolDefinition[] = [
           type: 'string',
           description: 'Optional wallet name',
         },
+        wallet_purpose: {
+          type: 'string',
+          enum: ['general', 'gas_tank', 'deployment', 'custody', 'user', 'payment'],
+          description: 'Purpose of the wallet',
+        },
       },
       required: [],
     },
@@ -49,11 +54,20 @@ export const walletToolDefinitions: ToolDefinition[] = [
         },
         wallet_purpose: {
           type: 'string',
-          enum: ['user', 'gastank', 'payment', 'custody'],
+          enum: ['general', 'gas_tank', 'deployment', 'custody', 'user', 'payment'],
           description: 'Purpose of the wallet',
         },
       },
       required: ['name'],
+    },
+  },
+  {
+    name: 'get_wallets',
+    description: 'Get all wallets for the workspace. Requires workspaceId to be set in SDK initialization.',
+    inputSchema: {
+      type: 'object',
+      properties: {},
+      required: [],
     },
   },
   {
@@ -96,8 +110,8 @@ export const walletToolDefinitions: ToolDefinition[] = [
         },
         address_type: {
           type: 'string',
-          enum: ['evm', 'solana', 'tron'],
-          description: 'The blockchain type',
+          enum: ['evm', 'sol', 'tron'],
+          description: 'The blockchain type (evm for Ethereum/EVM chains, sol for Solana, tron for Tron)',
         },
       },
       required: ['wallet_id', 'address_type'],
@@ -115,7 +129,7 @@ export const walletToolDefinitions: ToolDefinition[] = [
         },
         network_id: {
           type: 'string',
-          description: 'Network ID (e.g., ethereum, solana)',
+          description: 'Network ID (UUID format)',
         },
       },
       required: ['tx_hash', 'network_id'],
@@ -126,11 +140,17 @@ export const walletToolDefinitions: ToolDefinition[] = [
 export const executeCreateMpcWallet: ToolExecutor = async (client: FystackMpcClient, args: Record<string, unknown>): Promise<string> => {
   const sdk = client.getSdk();
   const name = (args.name as string) || `MPC-Wallet-${Date.now()}`;
+  const walletPurposeStr = (args.wallet_purpose as string)?.toLowerCase();
+  
+  let walletPurpose = WalletPurpose.User;
+  if (walletPurposeStr) {
+    walletPurpose = mapWalletPurpose(walletPurposeStr);
+  }
   
   const response = await sdk.createWallet({
     name,
     walletType: WalletType.MPC,
-    walletPurpose: WalletPurpose.User,
+    walletPurpose,
   });
 
   return JSON.stringify({
@@ -138,6 +158,7 @@ export const executeCreateMpcWallet: ToolExecutor = async (client: FystackMpcCli
     status: response.status,
     name,
     wallet_type: 'MPC',
+    wallet_purpose: walletPurposeStr || 'user',
     message: `Successfully created MPC wallet: ${response.wallet_id}`,
   });
 };
@@ -151,18 +172,7 @@ export const executeCreateStandardWallet: ToolExecutor = async (client: FystackM
     throw new Error('Wallet name is required');
   }
 
-  let walletPurpose = WalletPurpose.User;
-  switch (walletPurposeStr) {
-    case 'gastank':
-      walletPurpose = WalletPurpose.Gastank;
-      break;
-    case 'payment':
-      walletPurpose = WalletPurpose.Payment;
-      break;
-    case 'custody':
-      walletPurpose = WalletPurpose.Custody;
-      break;
-  }
+  const walletPurpose = mapWalletPurpose(walletPurposeStr);
 
   const response = await sdk.createWallet({
     name,
@@ -177,6 +187,24 @@ export const executeCreateStandardWallet: ToolExecutor = async (client: FystackM
     wallet_type: 'Standard',
     wallet_purpose: walletPurposeStr,
     message: `Successfully created standard wallet: ${response.wallet_id}`,
+  });
+};
+
+export const executeGetWallets: ToolExecutor = async (client: FystackMpcClient, args: Record<string, unknown>): Promise<string> => {
+  const sdk = client.getSdk();
+  const wallets = await sdk.getWallets();
+
+  return JSON.stringify({
+    wallets: wallets.map(wallet => ({
+      id: wallet.id,
+      name: wallet.name,
+      role: wallet.role,
+      wallet_type: wallet.wallet_type,
+      value_usd: wallet.value_usd,
+      wallet_purpose: wallet.wallet_purpose,
+      top_assets: wallet.top_assets,
+    })),
+    count: wallets.length,
   });
 };
 
@@ -216,6 +244,7 @@ export const executeGetDepositAddress: ToolExecutor = async (client: FystackMpcC
 
   let addressType: AddressType;
   switch (addressTypeStr) {
+    case 'sol':
     case 'solana':
       addressType = AddressType.Solana;
       break;
@@ -373,6 +402,25 @@ export const executeGetWalletCreationStatus: ToolExecutor = async (client: Fysta
 };
 
 // Helper functions
+function mapWalletPurpose(purposeStr: string): WalletPurpose {
+  switch (purposeStr) {
+    case 'general':
+      return WalletPurpose.General;
+    case 'gastank':
+    case 'gas_tank':
+      return WalletPurpose.Gastank;
+    case 'deployment':
+      return WalletPurpose.Deployment;
+    case 'custody':
+      return WalletPurpose.Custody;
+    case 'payment':
+      return WalletPurpose.Payment;
+    case 'user':
+    default:
+      return WalletPurpose.User;
+  }
+}
+
 function extractWalletName(message: string): string | undefined {
   const nameMatch = message.match(/name[d]?\s+["']([^"']+)["']/i) || 
                     message.match(/called\s+["']([^"']+)["']/i);
@@ -382,11 +430,15 @@ function extractWalletName(message: string): string | undefined {
 function extractWalletPurpose(message: string): string {
   const lowerMessage = message.toLowerCase();
   if (lowerMessage.includes('gastank') || lowerMessage.includes('gas tank')) {
-    return 'gastank';
+    return 'gas_tank';
   } else if (lowerMessage.includes('payment')) {
     return 'payment';
   } else if (lowerMessage.includes('custody')) {
     return 'custody';
+  } else if (lowerMessage.includes('deployment')) {
+    return 'deployment';
+  } else if (lowerMessage.includes('general')) {
+    return 'general';
   }
   return 'user';
 }

@@ -1,4 +1,5 @@
 import { FystackSDK, Environment, EtherSigner, SolanaSigner, PaymentService, APIService } from '@fystack/sdk';
+import { JsonRpcProvider } from 'ethers';
 import type { Config } from '../configs/index';
 
 export class FystackMpcClient {
@@ -19,6 +20,7 @@ export class FystackMpcClient {
         apiKey: config.fystackApiKey,
         apiSecret: config.fystackApiSecret,
       },
+      workspaceId: config.fystackWorkspaceId,
       environment: this.environment,
       logger: config.logLevel === 'debug',
     });
@@ -37,16 +39,18 @@ export class FystackMpcClient {
   }
 
   getEtherSigner(provider?: any): EtherSigner {
-    if (!this.etherSigner) {
-      this.etherSigner = new EtherSigner(
-        {
-          apiKey: this.config.fystackApiKey,
-          apiSecret: this.config.fystackApiSecret,
-        },
-        this.environment,
-        provider
-      );
-    }
+    // Always ensure we have a valid provider configured (defaults to ENV)
+    const effectiveProvider = provider || new JsonRpcProvider(this.config.ethereumRpcUrl, this.config.ethereumChainId);
+
+    this.etherSigner = new EtherSigner(
+      {
+        apiKey: this.config.fystackApiKey,
+        apiSecret: this.config.fystackApiSecret,
+      },
+      this.environment,
+      effectiveProvider
+    );
+
     return this.etherSigner;
   }
 

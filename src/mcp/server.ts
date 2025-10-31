@@ -11,6 +11,7 @@ import {
   toolDefinitions,
   executeCreateMpcWallet,
   executeCreateStandardWallet,
+  executeGetWallets,
   executeGetWalletCreationStatus,
   executeGetWalletAssets,
   executeGetDepositAddress,
@@ -30,12 +31,6 @@ import {
   executeGetPaymentCheckout,
   executeCreateCheckoutPayment,
   executeGetCheckoutPayment,
-  executeVerifyWebhookEvent,
-  executeApiGetWalletDetail,
-  executeApiRequestSign,
-  executeApiGetSignStatus,
-  executeApiSignTransaction,
-  executeApiGetTransactionStatus,
 } from './tools/tools';
 
 export class FystackMcpServer {
@@ -94,6 +89,10 @@ export class FystackMcpServer {
 
         case 'create_standard_wallet':
           result = await executeCreateStandardWallet(this.client, args);
+          break;
+
+        case 'get_wallets':
+          result = await executeGetWallets(this.client, args);
           break;
 
         case 'get_wallet_creation_status':
@@ -169,32 +168,6 @@ export class FystackMcpServer {
 
         case 'get_checkout_payment':
           result = await executeGetCheckoutPayment(this.client, args);
-          break;
-
-        // Webhook tools
-        case 'verify_webhook_event':
-          result = await executeVerifyWebhookEvent(this.client, args);
-          break;
-
-        // API Service low-level tools
-        case 'api_get_wallet_detail':
-          result = await executeApiGetWalletDetail(this.client, args);
-          break;
-
-        case 'api_request_sign':
-          result = await executeApiRequestSign(this.client, args);
-          break;
-
-        case 'api_get_sign_status':
-          result = await executeApiGetSignStatus(this.client, args);
-          break;
-
-        case 'api_sign_transaction':
-          result = await executeApiSignTransaction(this.client, args);
-          break;
-
-        case 'api_get_transaction_status':
-          result = await executeApiGetTransactionStatus(this.client, args);
           break;
 
         default:

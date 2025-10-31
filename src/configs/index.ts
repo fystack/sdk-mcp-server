@@ -8,6 +8,7 @@ export interface Config {
   fystackApiKey: string;
   fystackApiSecret: string;
   fystackEnvironment: 'local' | 'sandbox' | 'production';
+  fystackWorkspaceId?: string;
   solanaRpcUrl: string;
   ethereumRpcUrl: string;
   ethereumChainId: number;
@@ -31,6 +32,7 @@ export function loadConfig(): Config {
     fystackApiKey: process.env.FYSTACK_API_KEY || '',
     fystackApiSecret: process.env.FYSTACK_API_SECRET || '',
     fystackEnvironment: normalizeEnvironment(process.env.FYSTACK_ENVIRONMENT),
+    fystackWorkspaceId: process.env.FYSTACK_WORKSPACE_ID,
 
     solanaRpcUrl: process.env.SOLANA_RPC_URL || 'https://api.devnet.solana.com',
     ethereumRpcUrl: process.env.ETHEREUM_RPC_URL || 'https://eth-sepolia.g.alchemy.com/v2/demo',
