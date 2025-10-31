@@ -33,6 +33,7 @@ import {
   executeGetCheckoutPayment,
   executeUniswapGetPrice,
   executeUniswapExecuteSwap,
+  executeUniswapSuggestSwap,
 } from './tools/tools';
 
 export class FystackMcpServer {
@@ -179,6 +180,10 @@ export class FystackMcpServer {
 
         case 'uniswap_execute_swap':
           result = await executeUniswapExecuteSwap(this.client, args);
+          break;
+
+        case 'uniswap_suggest_swap':
+          result = await executeUniswapSuggestSwap(this.client, args);
           break;
 
         default:

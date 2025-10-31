@@ -1,6 +1,6 @@
 import { loadConfig } from '../src/configs/index.js';
 import { FystackMpcClient } from '../src/fystack/client.js';
-import { executeUniswapGetPrice, executeUniswapExecuteSwap } from '../src/mcp/tools/uniswap-tools.js';
+import { executeUniswapGetPrice, executeUniswapExecuteSwap, executeUniswapSuggestSwap } from '../src/mcp/tools/uniswap-tools.js';
 
 /**
  * Uniswap Integration Example
@@ -66,8 +66,26 @@ async function main(): Promise<void> {
     console.log('');
     */
 
-    // Example 4: Multi-chain price comparison
-    console.log('🌐 Example 4: Comparing prices across chains...');
+    // Example 4: Get swap suggestions
+    console.log('💡 Example 4: Getting swap suggestions for 1 ETH...');
+    const suggestions = await executeUniswapSuggestSwap(client, {
+      wallet_id: process.env.WALLET_ID || 'your-wallet-id',
+      chain_id: 1,
+      token_in: 'NATIVE',
+      amount: '1.0',
+    });
+    const suggestionsResult = JSON.parse(suggestions);
+    console.log(`Found ${suggestionsResult.suggestions_found} viable swaps:`);
+    suggestionsResult.suggestions.slice(0, 3).forEach((s: any, i: number) => {
+      console.log(`${i + 1}. ${s.recommendation} - ${s.token_symbol}`);
+      console.log(`   Output: ${s.output_amount} ${s.token_symbol}`);
+      console.log(`   Score: ${s.score}/100`);
+      console.log(`   ${s.reasoning}`);
+    });
+    console.log('');
+
+    // Example 5: Multi-chain price comparison
+    console.log('🌐 Example 5: Comparing prices across chains...');
     const chains = [
       { id: 1, name: 'Ethereum', usdc: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48' },
       { id: 137, name: 'Polygon', usdc: '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174' },

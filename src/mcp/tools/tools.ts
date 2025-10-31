@@ -58,4 +58,5 @@ export {
 export {
   executeUniswapGetPrice,
   executeUniswapExecuteSwap,
+  executeUniswapSuggestSwap,
 } from './uniswap-tools';

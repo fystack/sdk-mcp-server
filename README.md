@@ -84,6 +84,7 @@ Add this to your Claude Desktop config (or other MCP client):
       "env": {
         "FYSTACK_API_KEY": "YOUR_API_KEY_HERE",
         "FYSTACK_API_SECRET": "YOUR_API_SECRET_HERE",
+        "FYSTACK_WORKSPACE_ID": "YOUR_WORKSPACE_ID_HERE",
         "FYSTACK_ENVIRONMENT": "sandbox",
         "LOG_LEVEL": "info"
       }
@@ -249,7 +250,26 @@ Execute a token swap on Uniswap using MPC wallet.
 }
 ```
 
-See [UNISWAP_INTEGRATION.md](./UNISWAP_INTEGRATION.md) for detailed documentation.
+#### `uniswap_suggest_swap`
+Get intelligent swap suggestions based on liquidity, fees, and route optimization.
+
+```json
+{
+  "tool": "uniswap_suggest_swap",
+  "wallet_id": "550e8400-e29b-41d4-a716-446655440000",
+  "chain_id": 1,
+  "token_in": "NATIVE",
+  "amount": "1.0"
+}
+```
+
+**Returns ranked suggestions with:**
+- Output amounts for each token
+- Price impact analysis
+- Gas cost estimates
+- Fee comparison
+- Route complexity
+- AI-generated reasoning
 
 ## Usage Examples
 
