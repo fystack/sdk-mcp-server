@@ -96,3 +96,5 @@ Desktop.ini
 .idea/
 *.iml
 out/
+cursor/
+CLAUDE.md

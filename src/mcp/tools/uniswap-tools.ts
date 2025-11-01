@@ -1,15 +1,25 @@
 import type { FystackMpcClient } from '../../fystack/client';
 import type { ToolDefinition, ToolExecutor } from '../types';
-import { ethers } from 'ethers';
+import { parseUnits as parseUnitsV6, getAddress, ZeroAddress as ZeroAddressV6, MaxUint256 as MaxUint256V6 } from 'ethers6';
+import { ethers, BigNumber } from 'ethers';
 import { Token, CurrencyAmount, TradeType, Percent } from '@uniswap/sdk-core';
 import { AlphaRouter, SwapType } from '@uniswap/smart-order-router';
-import { CHAIN_CONFIGS } from '../../configs/chains';
+import { MAINNET_CONFIGS, TESTNET_CONFIGS } from '../../configs/chains';
 
 const ERC20ABI = [
   'function balanceOf(address account) external view returns (uint256)',
   'function approve(address spender, uint256 amount) external returns (bool)',
+  'function allowance(address owner, address spender) external view returns (uint256)',
   'function symbol() external view returns (string)',
   'function decimals() external view returns (uint8)',
+];
+
+const ERC20ABI_NONSTANDARD = [
+  'function balanceOf(address account) external view returns (uint256)',
+  'function approve(address spender, uint256 amount) external returns (bool)',
+  'function symbol() external view returns (string)',
+  'function decimals() external view returns (uint256)',
+  'function allowance(address owner, address spender) external view returns (uint256)',
 ];
 
 const WETHABI = [
@@ -142,31 +152,78 @@ export const uniswapToolDefinitions: ToolDefinition[] = [
 ];
 
 function getChainContext(chainId: number) {
-  const config = CHAIN_CONFIGS[chainId];
+  const config = MAINNET_CONFIGS[chainId] || TESTNET_CONFIGS[chainId];
   if (!config) {
-    const supportedChains = Object.entries(CHAIN_CONFIGS)
-      .map(([id, { name }]) => `${id} - ${name}`)
+    const mainnetChains = Object.entries(MAINNET_CONFIGS)
+      .map(([id, { name }]) => `${id} - ${name} (mainnet)`)
       .join(', ');
-    throw new Error(`Unsupported chainId: ${chainId}. Supported chains: ${supportedChains}`);
+    const testnetChains = Object.entries(TESTNET_CONFIGS)
+      .map(([id, { name }]) => `${id} - ${name} (testnet)`)
+      .join(', ');
+    throw new Error(
+      `Unsupported chainId: ${chainId}. Supported mainnet chains: ${mainnetChains}. Supported testnet chains: ${testnetChains}`
+    );
   }
   const provider = new ethers.providers.JsonRpcProvider(config.rpcUrl);
   const router = new AlphaRouter({ chainId, provider });
   return { provider, router, config };
 }
 
+async function getTokenContract(
+  address: string,
+  provider: ethers.providers.JsonRpcProvider
+): Promise<ethers.Contract> {
+  const standardContract = new ethers.Contract(address, ERC20ABI, provider);
+  const nonstandardContract = new ethers.Contract(address, ERC20ABI_NONSTANDARD, provider);
+  
+  try {
+    const decimals = await standardContract.decimals();
+    if (typeof decimals === 'number' || (decimals && decimals.toNumber)) {
+      return standardContract;
+    }
+  } catch (error) {
+    // Standard ABI failed, try non-standard
+  }
+  
+  return nonstandardContract;
+}
+
 async function createToken(
   chainId: number,
   address: string,
-  provider: ethers.providers.Provider,
+  provider: ethers.providers.JsonRpcProvider,
   symbol = 'UNKNOWN',
   name = 'Unknown Token'
 ): Promise<Token> {
-  const config = CHAIN_CONFIGS[chainId];
+  const config = MAINNET_CONFIGS[chainId] || TESTNET_CONFIGS[chainId];
+  if (!config) {
+    throw new Error(`Unsupported chainId: ${chainId}`);
+  }
   if (!address || address.toLowerCase() === 'native') {
     return new Token(chainId, config.weth, 18, symbol, name);
   }
-  const tokenContract = new ethers.Contract(address, ERC20ABI, provider);
-  const decimals = await tokenContract.decimals();
+  
+  const tokenContract = await getTokenContract(address, provider);
+  let decimals: number;
+  try {
+    const decimalsResult = await tokenContract.decimals();
+    decimals = typeof decimalsResult === 'number' ? decimalsResult : decimalsResult.toNumber();
+  } catch (error) {
+    const commonTokensHint = config.commonTokens
+      ? `\n\nCommon ${config.name} testnet tokens:\n` +
+        Object.entries(config.commonTokens)
+          .map(([name, addr]) => `- ${name.toUpperCase()}: ${addr}`)
+          .join('\n')
+      : '';
+    throw new Error(
+      `Invalid or non-existent ERC20 token at address ${address} on ${config.name} (chainId: ${chainId}).\n` +
+      `This could mean:\n` +
+      `1. The contract doesn't exist at this address\n` +
+      `2. The contract is not an ERC20 token\n` +
+      `3. There's an RPC connectivity issue${commonTokensHint}`
+    );
+  }
+  
   return new Token(chainId, ethers.utils.getAddress(address), decimals, symbol, name);
 }
 
@@ -315,7 +372,7 @@ export const executeUniswapExecuteSwap: ToolExecutor = async (
 
     // Approve token if not native input
     if (!isNativeIn) {
-      const tokenContract = new ethers.Contract(tokenA.address, ERC20ABI, provider);
+      const tokenContract = await getTokenContract(tokenA.address, provider);
       const allowance = await tokenContract.allowance(await signer.getAddress(), config.swapRouter);
       
       if (allowance.lt(amountWei)) {

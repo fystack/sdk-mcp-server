@@ -1,5 +1,5 @@
 import { FystackSDK, Environment, EtherSigner, SolanaSigner, PaymentService, APIService } from '@fystack/sdk';
-import { ethers } from 'ethers';
+import { JsonRpcProvider } from 'ethers6';
 import type { Config } from '../configs/index';
 
 export class FystackMpcClient {
@@ -40,7 +40,7 @@ export class FystackMpcClient {
 
   getEtherSigner(provider?: any): EtherSigner {
     // Always ensure we have a valid provider configured (defaults to ENV)
-    const effectiveProvider = provider || new ethers.providers.JsonRpcProvider(this.config.ethereumRpcUrl, this.config.ethereumChainId);
+    const effectiveProvider = provider || new JsonRpcProvider(this.config.ethereumRpcUrl, this.config.ethereumChainId);
 
     this.etherSigner = new EtherSigner(
       {

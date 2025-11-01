@@ -4,9 +4,15 @@ export interface ChainConfig {
   poolFactory: string;
   weth: string;
   name: string;
+  commonTokens?: {
+    usdt?: string;
+    usdc?: string;
+    dai?: string;
+    wbtc?: string;
+  };
 }
 
-export const CHAIN_CONFIGS: Record<number, ChainConfig> = {
+export const MAINNET_CONFIGS: Record<number, ChainConfig> = {
   1: {
     rpcUrl: 'https://eth.llamarpc.com',
     swapRouter: '0xE592427A0AEce92De3Edee1F18E0157C05861564',
@@ -63,4 +69,23 @@ export const CHAIN_CONFIGS: Record<number, ChainConfig> = {
     weth: '0x4200000000000000000000000000000000000006',
     name: 'Base',
   },
+};
+
+export const TESTNET_CONFIGS: Record<number, ChainConfig> = {
+  11155111: {
+    rpcUrl: 'https://ethereum-sepolia-rpc.publicnode.com',
+    swapRouter: '0xE592427A0AEce92De3Edee1F18E0157C05861564',
+    poolFactory: '0x1F98431c8aD98523631AE4a59f267346ea31F984',
+    weth: '0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14',
+    name: 'Sepolia',
+    commonTokens: {
+      usdt: '0xaa8e23fb1079ea71e0a56f48a2aa51851d8433d0',
+      usdc: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238',
+    },
+  },
+};
+
+export const CHAIN_CONFIGS: Record<number, ChainConfig> = {
+  ...MAINNET_CONFIGS,
+  ...TESTNET_CONFIGS,
 };
