@@ -1,53 +1,43 @@
-import type { FystackMpcClient } from '../../fystack/client';
-import type { ToolDefinition, ToolExecutor } from '../types';
+import type { FystackMpcClient } from '../../fystack/client.js';
+import type { ToolDefinition, ToolExecutor } from '../types.js';
+import { EthereumService } from '../../services/ethereum/eth.service.js';
+import { formatError } from '../../utils/errors.js';
+import { validateString } from '../../utils/validators.js';
+
+const ethService = new EthereumService();
 
 export const ethToolDefinitions: ToolDefinition[] = [
   {
     name: 'eth_get_address',
-    description: 'Get the Ethereum address for a wallet.',
+    description: 'Get Ethereum address for a wallet.',
     inputSchema: {
       type: 'object',
       properties: {
-        wallet_id: {
-          type: 'string',
-          description: 'The wallet ID',
-        },
+        wallet_id: { type: 'string', description: 'The wallet ID' },
       },
       required: ['wallet_id'],
     },
   },
   {
     name: 'eth_sign_transaction',
-    description: 'Sign an Ethereum transaction (returns tx hash).',
+    description: 'Sign an Ethereum transaction.',
     inputSchema: {
       type: 'object',
       properties: {
-        wallet_id: {
-          type: 'string',
-          description: 'The wallet ID',
-        },
-        transaction: {
-          type: 'object',
-          description: 'Transaction object with to, from, value, data, gasLimit, maxFeePerGas, etc.',
-        },
+        wallet_id: { type: 'string', description: 'The wallet ID' },
+        transaction: { type: 'object', description: 'Transaction object (to, value, data, etc.)' },
       },
       required: ['wallet_id', 'transaction'],
     },
   },
   {
     name: 'eth_send_transaction',
-    description: 'Sign and send an Ethereum transaction (auto-populates gas if needed).',
+    description: 'Sign and send an Ethereum transaction.',
     inputSchema: {
       type: 'object',
       properties: {
-        wallet_id: {
-          type: 'string',
-          description: 'The wallet ID',
-        },
-        transaction: {
-          type: 'object',
-          description: 'Transaction object with to, value, data, etc.',
-        },
+        wallet_id: { type: 'string', description: 'The wallet ID' },
+        transaction: { type: 'object', description: 'Transaction object' },
       },
       required: ['wallet_id', 'transaction'],
     },
@@ -58,14 +48,8 @@ export const ethToolDefinitions: ToolDefinition[] = [
     inputSchema: {
       type: 'object',
       properties: {
-        wallet_id: {
-          type: 'string',
-          description: 'The wallet ID',
-        },
-        message: {
-          type: 'string',
-          description: 'Message to sign',
-        },
+        wallet_id: { type: 'string', description: 'The wallet ID' },
+        message: { type: 'string', description: 'Message to sign' },
       },
       required: ['wallet_id', 'message'],
     },
@@ -76,131 +60,83 @@ export const ethToolDefinitions: ToolDefinition[] = [
     inputSchema: {
       type: 'object',
       properties: {
-        wallet_id: {
-          type: 'string',
-          description: 'The wallet ID',
-        },
-        domain: {
-          type: 'object',
-          description: 'EIP-712 domain (JSON object with name, version, chainId, verifyingContract)',
-        },
-        types: {
-          type: 'object',
-          description: 'EIP-712 types definition (JSON object)',
-        },
-        value: {
-          type: 'object',
-          description: 'The message value to sign (JSON object)',
-        },
+        wallet_id: { type: 'string', description: 'The wallet ID' },
+        domain: { type: 'object', description: 'EIP-712 domain' },
+        types: { type: 'object', description: 'EIP-712 types definition' },
+        value: { type: 'object', description: 'The message value to sign' },
       },
       required: ['wallet_id', 'domain', 'types', 'value'],
     },
   },
 ];
 
-export const executeEthGetAddress: ToolExecutor = async (client: FystackMpcClient, args: Record<string, unknown>): Promise<string> => {
-  const walletId = args.wallet_id as string;
-
-  if (!walletId) {
-    throw new Error('wallet_id is required');
+export const executeEthGetAddress: ToolExecutor = async (
+  client: FystackMpcClient,
+  args: Record<string, unknown>
+): Promise<string> => {
+  try {
+    const walletId = validateString(args.wallet_id, 'wallet_id');
+    const result = await ethService.getAddress(client, walletId);
+    return JSON.stringify(result, null, 2);
+  } catch (error) {
+    return formatError(error);
   }
-
-  const signer = client.getEtherSigner();
-  signer.setWallet(walletId);
-  
-  const address = await signer.getAddress();
-
-  return JSON.stringify({
-    wallet_id: walletId,
-    address,
-    blockchain: 'ethereum',
-  });
 };
 
-export const executeEthSignTransaction: ToolExecutor = async (client: FystackMpcClient, args: Record<string, unknown>): Promise<string> => {
-  const walletId = args.wallet_id as string;
-  const transaction = args.transaction as any;
-
-  if (!walletId || !transaction) {
-    throw new Error('wallet_id and transaction are required');
+export const executeEthSignTransaction: ToolExecutor = async (
+  client: FystackMpcClient,
+  args: Record<string, unknown>
+): Promise<string> => {
+  try {
+    const walletId = validateString(args.wallet_id, 'wallet_id');
+    const transaction = args.transaction as Record<string, unknown>;
+    const result = await ethService.signTransaction(client, walletId, transaction);
+    return JSON.stringify(result, null, 2);
+  } catch (error) {
+    return formatError(error);
   }
-
-  const signer = client.getEtherSigner();
-  signer.setWallet(walletId);
-  
-  const txHash = await signer.signTransaction(transaction);
-
-  return JSON.stringify({
-    wallet_id: walletId,
-    tx_hash: txHash,
-    message: 'Transaction signed successfully',
-  });
 };
 
-export const executeEthSendTransaction: ToolExecutor = async (client: FystackMpcClient, args: Record<string, unknown>): Promise<string> => {
-  const walletId = args.wallet_id as string;
-  const transaction = args.transaction as any;
-
-  if (!walletId || !transaction) {
-    throw new Error('wallet_id and transaction are required');
+export const executeEthSendTransaction: ToolExecutor = async (
+  client: FystackMpcClient,
+  args: Record<string, unknown>
+): Promise<string> => {
+  try {
+    const walletId = validateString(args.wallet_id, 'wallet_id');
+    const transaction = args.transaction as Record<string, unknown>;
+    const result = await ethService.sendTransaction(client, walletId, transaction);
+    return JSON.stringify(result, null, 2);
+  } catch (error) {
+    return formatError(error);
   }
-
-  const signer = client.getEtherSigner();
-  signer.setWallet(walletId);
-  
-  const txResponse = await signer.sendTransaction(transaction);
-
-  return JSON.stringify({
-    wallet_id: walletId,
-    tx_hash: txResponse.hash,
-    from: txResponse.from,
-    to: txResponse.to,
-    value: txResponse.value.toString(),
-    nonce: txResponse.nonce,
-    gas_limit: txResponse.gasLimit.toString(),
-    message: 'Transaction sent successfully',
-  });
 };
 
-export const executeEthSignMessage: ToolExecutor = async (client: FystackMpcClient, args: Record<string, unknown>): Promise<string> => {
-  const walletId = args.wallet_id as string;
-  const message = args.message as string;
-
-  if (!walletId || !message) {
-    throw new Error('wallet_id and message are required');
+export const executeEthSignMessage: ToolExecutor = async (
+  client: FystackMpcClient,
+  args: Record<string, unknown>
+): Promise<string> => {
+  try {
+    const walletId = validateString(args.wallet_id, 'wallet_id');
+    const message = validateString(args.message, 'message');
+    const result = await ethService.signMessage(client, walletId, message);
+    return JSON.stringify(result, null, 2);
+  } catch (error) {
+    return formatError(error);
   }
-
-  const signer = client.getEtherSigner();
-  signer.setWallet(walletId);
-  
-  const signature = await signer.signMessage(message);
-
-  return JSON.stringify({
-    wallet_id: walletId,
-    message,
-    signature,
-    message_text: 'Message signed successfully',
-  });
 };
 
-export const executeEthSignTypedData: ToolExecutor = async (client: FystackMpcClient, args: Record<string, unknown>): Promise<string> => {
-  const walletId = args.wallet_id as string;
-  const domain = args.domain as any;
-  const types = args.types as any;
-  const value = args.value as any;
-
-  if (!walletId || !domain || !types || !value) {
-    throw new Error('wallet_id, domain, types, and value are required');
+export const executeEthSignTypedData: ToolExecutor = async (
+  client: FystackMpcClient,
+  args: Record<string, unknown>
+): Promise<string> => {
+  try {
+    const walletId = validateString(args.wallet_id, 'wallet_id');
+    const domain = args.domain as Record<string, unknown>;
+    const types = args.types as Record<string, unknown>;
+    const value = args.value as Record<string, unknown>;
+    const result = await ethService.signTypedData(client, walletId, domain, types, value);
+    return JSON.stringify(result, null, 2);
+  } catch (error) {
+    return formatError(error);
   }
-
-  const signer = client.getEtherSigner();
-  signer.setWallet(walletId);
-  
-  const signature = await signer.signTypedData(domain, types, value);
-
-  return JSON.stringify({
-    wallet_id: walletId,
-    signature,
-    message: 'Typed data signed successfully',
-  });
 };

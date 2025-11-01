@@ -1,17 +1,19 @@
-import type { FystackMpcClient } from '../../fystack/client';
-import type { ToolDefinition, ToolExecutor } from '../types';
+import type { FystackMpcClient } from '../../fystack/client.js';
+import type { ToolDefinition, ToolExecutor } from '../types.js';
+import { SolanaService } from '../../services/solana/solana.service.js';
+import { formatError } from '../../utils/errors.js';
+import { validateString } from '../../utils/validators.js';
+
+const solanaService = new SolanaService();
 
 export const solanaToolDefinitions: ToolDefinition[] = [
   {
     name: 'solana_get_address',
-    description: 'Get the Solana address for a wallet.',
+    description: 'Get Solana address for a wallet.',
     inputSchema: {
       type: 'object',
       properties: {
-        wallet_id: {
-          type: 'string',
-          description: 'The wallet ID',
-        },
+        wallet_id: { type: 'string', description: 'The wallet ID' },
       },
       required: ['wallet_id'],
     },
@@ -22,14 +24,8 @@ export const solanaToolDefinitions: ToolDefinition[] = [
     inputSchema: {
       type: 'object',
       properties: {
-        wallet_id: {
-          type: 'string',
-          description: 'The wallet ID',
-        },
-        transaction: {
-          type: 'string',
-          description: 'Base64 encoded serialized transaction',
-        },
+        wallet_id: { type: 'string', description: 'The wallet ID' },
+        transaction: { type: 'object', description: 'Solana transaction object' },
       },
       required: ['wallet_id', 'transaction'],
     },
@@ -40,14 +36,8 @@ export const solanaToolDefinitions: ToolDefinition[] = [
     inputSchema: {
       type: 'object',
       properties: {
-        wallet_id: {
-          type: 'string',
-          description: 'The wallet ID',
-        },
-        message: {
-          type: 'string',
-          description: 'Message to sign (base64 or string)',
-        },
+        wallet_id: { type: 'string', description: 'The wallet ID' },
+        message: { type: 'string', description: 'Message to sign' },
       },
       required: ['wallet_id', 'message'],
     },
@@ -58,136 +48,91 @@ export const solanaToolDefinitions: ToolDefinition[] = [
     inputSchema: {
       type: 'object',
       properties: {
-        wallet_id: {
-          type: 'string',
-          description: 'The wallet ID',
-        },
-        transaction: {
-          type: 'string',
-          description: 'Base64 encoded serialized transaction',
-        },
+        wallet_id: { type: 'string', description: 'The wallet ID' },
+        transaction: { type: 'object', description: 'Solana transaction object' },
       },
       required: ['wallet_id', 'transaction'],
     },
   },
   {
     name: 'solana_sign_all_transactions',
-    description: 'Sign multiple Solana transactions at once.',
+    description: 'Sign multiple Solana transactions.',
     inputSchema: {
       type: 'object',
       properties: {
-        wallet_id: {
-          type: 'string',
-          description: 'The wallet ID',
-        },
-        transactions: {
-          type: 'array',
-          items: { type: 'string' },
-          description: 'Array of base64 encoded serialized transactions',
-        },
+        wallet_id: { type: 'string', description: 'The wallet ID' },
+        transactions: { type: 'array', description: 'Array of Solana transaction objects' },
       },
       required: ['wallet_id', 'transactions'],
     },
   },
 ];
 
-export const executeSolanaGetAddress: ToolExecutor = async (client: FystackMpcClient, args: Record<string, unknown>): Promise<string> => {
-  const walletId = args.wallet_id as string;
-
-  if (!walletId) {
-    throw new Error('wallet_id is required');
+export const executeSolanaGetAddress: ToolExecutor = async (
+  client: FystackMpcClient,
+  args: Record<string, unknown>
+): Promise<string> => {
+  try {
+    const walletId = validateString(args.wallet_id, 'wallet_id');
+    const result = await solanaService.getAddress(client, walletId);
+    return JSON.stringify(result, null, 2);
+  } catch (error) {
+    return formatError(error);
   }
-
-  const signer = client.getSolanaSigner();
-  signer.setWallet(walletId);
-  
-  const address = await signer.getAddress();
-
-  return JSON.stringify({
-    wallet_id: walletId,
-    address,
-    blockchain: 'solana',
-  });
 };
 
-export const executeSolanaSignMessage: ToolExecutor = async (client: FystackMpcClient, args: Record<string, unknown>): Promise<string> => {
-  const walletId = args.wallet_id as string;
-  const message = args.message as string;
-
-  if (!walletId || !message) {
-    throw new Error('wallet_id and message are required');
+export const executeSolanaSignTransaction: ToolExecutor = async (
+  client: FystackMpcClient,
+  args: Record<string, unknown>
+): Promise<string> => {
+  try {
+    const walletId = validateString(args.wallet_id, 'wallet_id');
+    const transaction = args.transaction as Record<string, unknown>;
+    const result = await solanaService.signTransaction(client, walletId, transaction);
+    return JSON.stringify(result, null, 2);
+  } catch (error) {
+    return formatError(error);
   }
-
-  const signer = client.getSolanaSigner();
-  signer.setWallet(walletId);
-  
-  const signature = await signer.signMessage(message);
-
-  return JSON.stringify({
-    wallet_id: walletId,
-    message,
-    signature,
-    message_text: 'Message signed successfully',
-  });
 };
 
-export const executeSolanaSignTransaction: ToolExecutor = async (client: FystackMpcClient, args: Record<string, unknown>): Promise<string> => {
-  const walletId = args.wallet_id as string;
-  const transaction = args.transaction as string;
-
-  if (!walletId || !transaction) {
-    throw new Error('wallet_id and transaction are required');
+export const executeSolanaSignMessage: ToolExecutor = async (
+  client: FystackMpcClient,
+  args: Record<string, unknown>
+): Promise<string> => {
+  try {
+    const walletId = validateString(args.wallet_id, 'wallet_id');
+    const message = validateString(args.message, 'message');
+    const result = await solanaService.signMessage(client, walletId, message);
+    return JSON.stringify(result, null, 2);
+  } catch (error) {
+    return formatError(error);
   }
-
-  const signer = client.getSolanaSigner();
-  signer.setWallet(walletId);
-  
-  const signature = await signer.signTransaction(transaction);
-
-  return JSON.stringify({
-    wallet_id: walletId,
-    signature,
-    message: 'Transaction signed successfully',
-  });
 };
 
-export const executeSolanaSignAndSendTransaction: ToolExecutor = async (client: FystackMpcClient, args: Record<string, unknown>): Promise<string> => {
-  const walletId = args.wallet_id as string;
-  const transaction = args.transaction as string;
-
-  if (!walletId || !transaction) {
-    throw new Error('wallet_id and transaction are required');
+export const executeSolanaSignAndSendTransaction: ToolExecutor = async (
+  client: FystackMpcClient,
+  args: Record<string, unknown>
+): Promise<string> => {
+  try {
+    const walletId = validateString(args.wallet_id, 'wallet_id');
+    const transaction = args.transaction as Record<string, unknown>;
+    const result = await solanaService.signAndSendTransaction(client, walletId, transaction);
+    return JSON.stringify(result, null, 2);
+  } catch (error) {
+    return formatError(error);
   }
-
-  const signer = client.getSolanaSigner();
-  signer.setWallet(walletId);
-  
-  const txHash = await signer.signAndSendTransaction(transaction);
-
-  return JSON.stringify({
-    wallet_id: walletId,
-    tx_hash: txHash,
-    message: 'Transaction signed and sent successfully',
-  });
 };
 
-export const executeSolanaSignAllTransactions: ToolExecutor = async (client: FystackMpcClient, args: Record<string, unknown>): Promise<string> => {
-  const walletId = args.wallet_id as string;
-  const transactions = args.transactions as string[];
-
-  if (!walletId || !transactions || !Array.isArray(transactions)) {
-    throw new Error('wallet_id and transactions array are required');
+export const executeSolanaSignAllTransactions: ToolExecutor = async (
+  client: FystackMpcClient,
+  args: Record<string, unknown>
+): Promise<string> => {
+  try {
+    const walletId = validateString(args.wallet_id, 'wallet_id');
+    const transactions = args.transactions as Record<string, unknown>[];
+    const result = await solanaService.signAllTransactions(client, walletId, transactions);
+    return JSON.stringify(result, null, 2);
+  } catch (error) {
+    return formatError(error);
   }
-
-  const signer = client.getSolanaSigner();
-  signer.setWallet(walletId);
-  
-  const result = await signer.signAllTransactions(transactions);
-
-  return JSON.stringify({
-    wallet_id: walletId,
-    signed_transactions: result.transactions,
-    count: result.transactions.length,
-    message: `Successfully signed ${result.transactions.length} transactions`,
-  });
 };
